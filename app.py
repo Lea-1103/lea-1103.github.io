@@ -9,13 +9,16 @@ from werkzeug.utils import secure_filename
 from models import db, User, Product, Category, CartItem, Order, OrderItem, Review, BrowseHistory, Wishlist
 from forms import RegistrationForm, LoginForm, ProductForm, CartUpdateForm, CheckoutForm, ProfileForm
 from config import Config
-from admin import admin_bp
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # 初始化数据库
 db.init_app(app)
+
+# 初始化 Flask-Migrate
+migrate = Migrate(app, db)
 
 # Flask-Login 配置
 login_manager = LoginManager()
@@ -28,6 +31,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # 注册后台蓝图
+from admin import admin_bp
 app.register_blueprint(admin_bp, url_prefix='/admin')
 
 # ---------- 自定义 Jinja2 过滤器 ----------
@@ -519,27 +523,8 @@ def remove_session_cart_item(product_id):
 
 
 # ---------- 初始化数据库和默认数据 ----------
-with app.app_context():
-    db.create_all()
-    if Category.query.count() == 0:
-        default_categories = [
-            ('cpu', 'CPU处理器', 1),
-            ('gpu', '显卡', 2),
-            ('motherboard', '主板', 3),
-            ('ram', '内存', 4),
-            ('ssd', '固态硬盘', 5),
-            ('psu', '电源', 6),
-            ('case', '机箱', 7),
-            ('cooler', '散热器', 8),
-            ('peripheral', '外设', 9),
-        ]
-        for slug, name, order in default_categories:
-            cat = Category(name=name, slug=slug, sort_order=order, is_active=True)
-            db.session.add(cat)
-        admin = User(username='admin', email='admin@pegasus.com', first_name='Admin', last_name='User', is_admin=True, is_active=True)
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
+# 数据库表现在通过 Flask-Migrate 迁移管理
+# 如需添加默认数据，请使用迁移脚本或单独的初始化脚本
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
